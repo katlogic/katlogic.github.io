@@ -9,6 +9,7 @@
 	// URL to query.
 	var url = $.location.href.split('#')[0];
 	url = encodeURIComponent(url);
+        var title = encodeURIComponent($.title);
 
 	// Create the comment div, and restore from cache if possible.
 	var div = $.createElement('div');
@@ -19,9 +20,10 @@
 	var proto = $.location.protocol ;
 	var reddit = proto + '//www.reddit.com';
 	var reddit_s = reddit + '/search.json?type=link&sort=top&q=url:';
-	var hn_s = proto + '//hn.algolia.com/api/v1/search?'
-		+'restrictSearchableAttributes=url&query=';
-	var hn_i = proto + '//hn.algolia.com/api/v1/items/';
+        var algolia = proto + '//hn.algolia.com';
+        var hn_sq = '?restrictSearchableAttributes=url&query=';
+	var hn_s = algolia + '/api/v1/search'+hn_sq
+	var hn_i = algolia + '/api/v1/items/';
 	var hn = proto + '//news.ycombinator.com';
 
 	// Insert topmost div
@@ -38,12 +40,8 @@
 	}
 
 	// Initialize top most elements.
-	var hn_thread = hn + '/submitlink?u='
-		+encodeURIComponent(document.location)
-		+'&t='+encodeURIComponent(document.title);
-	var reddit_thread = reddit + '/submit?title='
-		+encodeURIComponent(document.title)
-		+'&url=' + encodeURIComponent(document.location);
+	var hn_thread = hn + '/submitlink?u='+url+'&t='+title;
+	var reddit_thread = reddit + '/submit?title='+title+'&url='+url;
 	div.innerHTML =
 		'<a class="button" id="r_submit" href="'+reddit_thread
 		+'"><button onclick="this.parentNode.click()&&false;">'
@@ -187,7 +185,9 @@
 				continue;
 			var threadu = reddit + '/r/' + t.data.subreddit
 					+ '/comments/' + t.data.id;
-			if (!i) $.getElementById('r_submit').href = threadu;
+			if (!i) $.getElementById('r_submit').href = reddit
+                              + '/search?type=link&sort=top&q=url:'
+                              + url;
 			threadu += '.json'
 			var subdiv = $.createElement('div');
 			reddit_div.appendChild(subdiv);
@@ -229,7 +229,7 @@
 		for (var i = 0; i < r.length; i++) {
 			var subdiv = $.createElement('div');
 			if (!i) $.getElementById('hn_submit').href =
-				hn + '/item?id='+r[i].objectID;
+                              algolia + hn_sq + url;
 			hn_div.appendChild(subdiv);
 			(function(subdiv){
 				xhr(hn_i + r[i].objectID, function(tree) {
