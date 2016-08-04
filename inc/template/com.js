@@ -8,7 +8,6 @@
 {
 	// URL to query.
 	var url = $.location.href.split('#')[0];
-        url = 'https://www.django-cms.org/en/blog/2016/06/09/making-django-cms-as-easy-to-install-as-wordpress/';
 	url = encodeURIComponent(url);
 
 	// Create the comment div, and restore from cache if possible.
