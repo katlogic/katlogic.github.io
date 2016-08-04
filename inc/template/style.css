@@ -99,7 +99,7 @@ div#footer {
 }
 
 p {
-	margin-top: 0.33em;
+	margin-top: 0.75em; /* XXX*/
 	margin-bottom: 0em;
 }
 .comment .tagline {
@@ -121,7 +121,7 @@ blockquote p {
 .tagline {
 	text-decoration: none;
 	color: #328232;
-	font-size: 18px;
+	ont-size: 18px;
 }
 
 .tagline a {
@@ -147,7 +147,7 @@ code {
 	border-bottom: 1px solid black;
 	display: inline-block;
 	line-height: 16px;
-	margin-bottom: 1em;
+	margin-bottom: 0.25em; /* XXX */
 }
 .tagline {
 	padding: 0px;
