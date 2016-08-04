@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--meta-->
+    <title>
+      Some fun with vintage bugs and driver signing enforcement
+    </title>
+
+    <meta charset="UTF-8" />
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+
+    <!--favicon-->
+    <link rel="shortcut icon" href="" />
+    <link rel="icon" href="" type="image/x-icon" />
+
+    <!--style-->
+    <link rel="stylesheet" href="http://kat.lua.cz/inc/template/style.css" />
+
+    <!--script-->
+    <script type="text/javascript">
+    </script>
+</head>
+<body>
+
+    <div id="wrap">
+        <div id="header">
+            <ul>
+                <li><a href="http://kat.lua.cz">&laquo; Index</a></li>
+                <li><a href="http://repo.or.cz/projlist.cgi?name=93010060b5c7ac8f86636265745cc7a2">Code</a></li>
+<li><a href="https://twitter.com/messages/compose?recipient_id=540159471">Contact</a></li>
+<li><a href="http://kat.lua.cz/pages/archive">Archive</a></li>
+
+                    <li><a href="http://kat.lua.cz/index.xml">RSS</a></li>
+            </ul>
+        </div><!--end header-->
+<div class="post">
+    <h2>
+          Some fun with vintage bugs and driver signing enforcement
+    </h2>
+    <div class="content">
+
+                
+<p><a href="https://github.com/katlogic/WindowsD/blob/3986373abcfad6958ddbe02684c5e5b6a8100fc8/wind.c#L371">click here for tl;dr</a></p>
+
+<p>Tablets with Windows, SecureBoot, TPM and Bitlocker is all fun and games,
+until you want to install some some free utility (such as FreeOTFE). Long story short,
+you have to disable Bitlocker, or buy a higher than home edition of windows (to add
+-pw protector so you can turn off secure boot). Bummer.</p>
+
+<p><a href="https://github.com/hfiref0x/DSEFix">There are of course other ways around this</a>,
+unfortunately the vbox exploit is not very suitable for my baytrail tablet,
+enforced WHQL won't even allow the driver to load. However this being an old
+hat-trick, googling turned up <a href="http://www.powerofcommunity.net/poc2012/mj0011.pdf">interesting approach</a> of
+simply loading older, more buggy Microsoft drivers (=WHQL sig) on modern windows
+to exploit, and bypass DSE.</p>
+
+<p>We'll still keep using the same bug class, but try to find some more reliable
+target than <code>mountmgr.sys</code>, as dealing with <a href="https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/bypass-x64-dse/x64DSEBypass.cpp">trashed SYSTEM thread stack and SMEP is pretty annoying.</a></p>
+
+<h4 id='UsingRtlQueryRegistryValuesbugsasaconvenientcopywhatwhere'>Using RtlQueryRegistryValues bugs as a convenient copy-what-where</h4>
+
+<p>Maybe we can do better - don't try to hijack IP control, but abuse <code>RtlQueryRegistryValues</code>
+to simply write <code>0</code> byte into <code>CI.DLL!ci_Options</code>, thus removing signed driver enforcement
+- all without running any shellcode.
+<a id="more"></a>
+IDA has turned up an interesting candidate, <code>termdd.sys</code> from Windows 7:</p>
+
+<p><img src="http://lua.cz/up/entry.png" alt=""/></p>
+
+<p>Bonus point for reading the registry before trying to create a device - allowing us to trigger
+the bug even when the driver is already present under original service name. Here is the driver
+code:</p>
+
+<p><img src="http://lua.cz/up/2016_08_03_07_02_09.png" alt=""/></p>
+
+
+<p>According to <a href="http://www.powerofcommunity.net/poc2012/mj0011.pdf">MJ0011's CVE-2010-4398</a>, this is not very encouraging for <code>REG_BINARY</code> - all
+<code>EntryContext</code> buffers are initialized to <code>0</code>. However this is not the only exploitable
+condition - in particular, <code>REG_SZ</code> entries are fine with <code>0</code>, the structure of <code>UNICODE_STRING</code>
+they expect is as follows:</p>
+
+<p><img src="http://lua.cz/up/2016_08_03_06_21_18.png" alt=""/></p>
+
+<p>Now we need to <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L706">study</a>
+<code>RtlQueryRegistryValues</code>, <code>REG_SZ</code> behavior in particular.</p>
+
+<p>When <code>Buffer</code> is <code>NULL</code>, <code>RtlQueryRegistryValues</code> will simply <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L221">allocate the string</a>,
+overwrite the first two fields with string length from registry, and store pointer into <code>Buffer</code> with
+registry string value in it.</p>
+
+<p>When <code>Buffer</code> is not <code>NULL</code>, the string data in registry will be stored at <code>Buffer</code> address, but ONLY
+if <code>MaximumLength</code> field is big enough to hold the string. Using a large registry string value <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L228">you can avoid
+dereferencing junk</a> <code>Buffer</code> pointer - notice <code>t3_data</code> being 1.</p>
+
+<p>The behavior of <code>REG_SZ</code> where the <code>Buffer</code> fields are dereferenced and written to will be used
+as our write-what-where vector.</p>
+
+<p>And it gets better - <code>REG_MULTI_SZ</code> will do the same as <code>REG_SZ</code>, but will keep storing the
+individual sub-strings as consecutive array of <code>UNICODE_STRING</code>s - allowing us to smash stack
+as much as we like as long as <code>Buffer</code> <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L221">turns out to be <code>NULL</code></a>. It will also
+<a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L524">silently skip over</a> fields which it can't write to - if <code>MaximumLength</code> is smaller than the size of registry string.</p>
+
+<p>We can come up with the following registry payload:</p>
+
+<ol>
+    <li><code>FlowControlDisable</code> - <code>t[0]</code> field - will be <code>REG_MULTI_SZ</code> of 2 substrings (<code>L"x\0x\0\0"</code> in C).
+    This will overwrite <code>t2_buf</code> (as well as things before it) with some junk (we need it non-zero).</li>
+    <li><code>FlowControlDisplayBandwidth</code> - <code>t[1]</code> field will be a <code>REG_DWORD</code> - an address we want to overwrite
+    in kernel - it will be stored as is into <code>t1_buf</code>.</li>
+    <li><code>FlowControlChannelBandwidth</code> - <code>t[2]</code> will be <code>REG_SZ</code>, value being simply the bytes we want to write
+    at the address we've chosen before via DWORD.</li>
+</ol>
+
+
+<p>Notice that 1. overwrote <code>t2_buf</code> with non-zeros, and we set our controlled value to <code>t1_buf</code> in step 2.
+<code>t2_buf</code> (=><code>{Length,Maximum}</code>) and <code>t1_buf</code> (=><code>Buffer</code>) will now be interpreted as a (very long) <code>UNICODE_STRING</code>
+in step 3 - with its <code>Buffer</code> field fully controlled by us. The string value in registry is then simply the payload
+copied at our chosen address via <code>t[1] DWORD</code>.</p>
+
+<h3 id='OnAMD64'>On AMD64</h3>
+
+<p>... the situation complicates a bit. We can't just overwrite <code>ci_Options</code> willy-nilly - PatchGuard would
+vomit a death smiley at us (Win8+). Instead, we'd want to save the original value first, then overwrite
+it with 0, load our unsigned driver, and restore the saved value. Fortunately, we got very lucky
+with stack layout on x64:</p>
+
+<p><img src="http://lua.cz/up/2016_08_03_07_39_42.png" alt=""/></p>
+
+<p>Having <code>EntryContext</code> stack destination in front of the table is pretty convenient, as we can just
+reshape rest of the table as we like and achieve true memcpy (control both source - <code>DefaultData</code> and destination
+- <code>EntryContext</code>).</p>
+
+<ol>
+    <li><code>FlowControlDisable</code> will be <code>REG_SZ</code> entry, the important bit is to make <code>v14</code> become non-0 - when it will be
+    used as a <code>REG_BINARY</code> buffer length field by <code>t[1]</code> - <code>FlowControlDisplayBandwidth</code>.</li>
+    <li><code>FlowControlDisplayBandwidth</code> will be <code>REG_BINARY</code>, and will overwrite contents of <code>RTL_QUERY_REGISTRY_TABLE[5]</code>
+    on the stack.</li>
+    <li>Kernel routine continues with t[2] and t[3] fields which are fully controlled through <code>REG_BINARY</code> value. One will be configured to save
+    original <code>ci_Options</code>, second will be used to write <code>0</code> byte into <code>ci_Options</code> right after we make our "backup"-
+    both use REG_DWORD type, and it becomes memcpy(dst=<code>EntryContext</code>, src=<code>DefaultData</code>,1). <code>Name</code> is pointed to some
+    random junk for default value fallback to trigger, as long it's a valid kernel memory, its fine.</li>
+</ol>
+
+<p>There is one caveat - <code>v14</code> is low 32bits result of <code>ExAllocatePool</code>, and it can be either positive or negative
+<code>LONG</code>. <code>REG_BINARY</code> <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L243">behaves differently depending on sign</a>
+ - for negative, it omits the <code>{Length,Type}</code> <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L256">preamble</a>.
+Meaning our table will be dumped on stack off-by-8 bytes and we can't guess where the pool sits (ie the sign bit it delivers) at first.</p>
+
+<p>What we do is - first assume the number will be positive and there is 8byte "padding" present,
+and if the guess turns out wrong, the misaligned structure will terminate <code>RtlQueryRegistryValues</code>
+through documented <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L899">invalid parameter combo</a>,
+namely specifying non-null <code>QueryRoutine</code> together with <code>RTL_QUERY_REGISTRY_DIRECT</code> (=<code>0x20</code>) in <code>Flags</code>. Remember
+the table looks like this on x64:</p>
+
+
+<p><img src="http://lua.cz/up/2016_08_03_08_24_46.png" alt=""/></p>
+
+<p>When our guess is wrong and the 8 byte padding is not present, presumed <code>Name</code> will be interpreted as <code>Flags</code>.
+Remember, <code>Name</code> is just some random pointer in kernel range we made up. So we make also sure it has a bit set
+at 0x20, thus becoming <code>RTL_QUERY_REGISTRY_DIRECT</code> as well. Moreover, the presumed <code>Flags</code> will be
+actually interpreted as <code>QueryRoutine</code> - thus completing the invalid parameter condition and function aborts,
+not touching any of our invalid pointers.</p>
+
+<p>We then just try again (the pool sign is very likely to remain the same), but by adding the 8 byte padding
+in registry, so the structure fields fit correctly.</p>
+
+<h3 id='Inconclusion'>In conclusion</h3>
+
+<p>"algorithmic" exploits like this are very robust and self-contained - they can bypass SMEP, CFG with
+no need for ROP-magic-constants voodoo. So far I've seen this only with <code>RtlQueryRegistryValues</code>
+class of bugs - mostly thanks to how user-data-driven this API is.</p>
+
+
+
+    </div>
+    <div class="meta">
+        Last updated Thu, 04 August, 2016
+    </div>
+    <script src="http://kat.lua.cz/inc/template/com.js"></script>
+</div>
+        <div class="biglinks">
+        </div><!--end biglinks-->
+
+    </div><!--end wrap-->
+</body>
+</html>

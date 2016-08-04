@@ -1,6 +1,6 @@
 body {
     margin: 0;
-    font-family: Georgia;
+    font-family: Verdana, Geneva, Sans-Serif;
     font-size: 20px;
     line-height: 32px;
     background: #F7F7F7;
@@ -13,7 +13,7 @@ a {
     border-bottom: 1px solid transparent;
 }
 a:hover {
-    border-bottom: 1px solid #D7D7D7;
+    border-bottom: 1px solid #999999;
 }
 
 .left {
@@ -25,7 +25,7 @@ a:hover {
 
 div#wrap {
     margin: 0 auto;
-    width: 800px;
+    width: 1024px;
 }
 
 div#header {
@@ -67,18 +67,23 @@ div.post {
         font-size: 24px;
         margin-bottom: 0;
         font-weight: normal;
+        display: block;
+        border-bottom: 1px solid #aaa;
     }
         div.post h2 a {
             text-decoration: none;
+        }
+        div.post h2 a:hover {
+            border-bottom: 1px solid transparent;
         }
     div.post div.content {
         text-align: justify;
     }
     div.post div.meta {
         font-size: 12px;
-        font-family: Verdana;
         text-transform: uppercase;
-        border-top: 1px dotted #D7D7D7;
+        border-top: 1px solid #aaa;
+        border-bottom: 1px solid #aaa;
         padding-top: 0px;
         margin-top: 13px;
     }
@@ -92,3 +97,80 @@ div#footer {
     float: left;
     width: 100%;
 }
+
+p {
+	margin-top: 0.33em;
+	margin-bottom: 0em;
+}
+.comment .tagline {
+	margin: 0;
+	padding-top: 0em;
+}
+
+blockquote p {
+    display: inline;
+}
+
+.md blockquote {
+	margin: 0;
+	padding: 0;
+	padding-left: 0.5em;
+	border-left: 2px solid #c5c1ad;
+}
+
+.tagline {
+	text-decoration: none;
+	color: #328232;
+	font-size: 18px;
+}
+
+.tagline a {
+	color: inherit;
+	border-bottom: 1px solid transparent;
+}
+
+.tagline a:hover {
+	border-bottom: 1px solid #424242;
+}
+
+li a {
+        color: #424242;
+}
+
+code {
+	font-weight: bold;
+}
+
+.reply, .reply:hover {
+	color: black;
+	font-size: 16px;
+	border-bottom: 1px solid black;
+	display: inline-block;
+	line-height: 16px;
+	margin-bottom: 1em;
+}
+.tagline {
+	padding: 0px;
+	margin: 0px;
+}
+.comment {
+	padding: 0em 0 0em 1.2em;
+	display: block;
+}
+.comment_body {
+	display: block;
+}
+a.button, a.button button {
+        cursor: pointer;
+}
+a.button {
+	margin-left: 1.2em;
+}
+a.button:hover {
+        cursor: pointer;
+        border-bottom: 1px solid transparent;
+}
+
+.comments {
+	margin-left: -1.2em;
+};

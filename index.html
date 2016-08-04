@@ -3,9 +3,7 @@
 <head>
     <!--meta-->
     <title>
-      
-      
-      A Lone Ship
+      kat 
     </title>
 
     <meta charset="UTF-8" />
@@ -27,29 +25,53 @@
 
     <div id="wrap">
         <div id="header">
-            <h1><a href="http://kat.lua.cz">A Lone Ship</a></h1>
             <ul>
-                <li><a href="http://kat.lua.cz/pages/archive">Archive</a></li>
+                
+                <li><a href="http://repo.or.cz/projlist.cgi?name=93010060b5c7ac8f86636265745cc7a2">Code</a></li>
+<li><a href="https://twitter.com/messages/compose?recipient_id=540159471">Contact</a></li>
+<li><a href="http://kat.lua.cz/pages/archive">Archive</a></li>
 
-                    <li><a href="http://kat.lua.cz/index.xml">RSS Feed</a></li>
+                    <li><a href="http://kat.lua.cz/index.xml">RSS</a></li>
             </ul>
         </div><!--end header-->
 <div class="post">
     <h2>
-          <a href="http://kat.lua.cz/posts/test">
-            test
+          <a href="http://kat.lua.cz/posts/Some_fun_with_vintage_bugs_and_driver_signing_enforcement">
+            Some fun with vintage bugs and driver signing enforcement
           </a>
     </h2>
     <div class="content">
 
+                
+<p><a href="https://github.com/katlogic/WindowsD/blob/3986373abcfad6958ddbe02684c5e5b6a8100fc8/wind.c#L371">click here for tl;dr</a></p>
 
-            
-<p>hello</p>
+<p>Tablets with Windows, SecureBoot, TPM and Bitlocker is all fun and games,
+until you want to install some some free utility (such as FreeOTFE). Long story short,
+you have to disable Bitlocker, or buy a higher than home edition of windows (to add
+-pw protector so you can turn off secure boot). Bummer.</p>
 
+<p><a href="https://github.com/hfiref0x/DSEFix">There are of course other ways around this</a>,
+unfortunately the vbox exploit is not very suitable for my baytrail tablet,
+enforced WHQL won't even allow the driver to load. However this being an old
+hat-trick, googling turned up <a href="http://www.powerofcommunity.net/poc2012/mj0011.pdf">interesting approach</a> of
+simply loading older, more buggy Microsoft drivers (=WHQL sig) on modern windows
+to exploit, and bypass DSE.</p>
+
+<p>We'll still keep using the same bug class, but try to find some more reliable
+target than <code>mountmgr.sys</code>, as dealing with <a href="https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/bypass-x64-dse/x64DSEBypass.cpp">trashed SYSTEM thread stack and SMEP is pretty annoying.</a></p>
+
+<h4 id='UsingRtlQueryRegistryValuesbugsasaconvenientcopywhatwhere'>Using RtlQueryRegistryValues bugs as a convenient copy-what-where</h4>
+
+<p>Maybe we can do better - don't try to hijack IP control, but abuse <code>RtlQueryRegistryValues</code>
+to simply write <code>0</code> byte into <code>CI.DLL!ci_Options</code>, thus removing signed driver enforcement
+- all without running any shellcode.</p>
+
+
+                <a href="http://kat.lua.cz/posts/Some_fun_with_vintage_bugs_and_driver_signing_enforcement#more">Read more &rarr;</a>
 
     </div>
     <div class="meta">
-        Wed, 03 August, 2016
+        Last updated Thu, 04 August, 2016
     </div>
 </div>
         <div class="biglinks">
