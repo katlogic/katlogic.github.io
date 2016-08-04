@@ -53,9 +53,9 @@ you have to disable Bitlocker, or buy a higher than home edition of windows (to 
 <p><a href="https://github.com/hfiref0x/DSEFix">There are of course other ways around this</a>,
 unfortunately the vbox exploit is not very suitable for my baytrail tablet,
 enforced WHQL won't even allow the driver to load. However this being an old
-hat-trick, googling turned up <a href="http://www.powerofcommunity.net/poc2012/mj0011.pdf">interesting approach</a> of
+hat-trick, googling turned up <a href="http://www.powerofcommunity.net/poc2012/mj0011.pdf">an interesting approach</a> of
 simply loading older, more buggy Microsoft drivers (=WHQL sig) on modern windows
-to exploit, and bypass DSE.</p>
+to exploit, and use that to bypass DSE.</p>
 
 <p>We'll still keep using the same bug class, but try to find some more reliable
 target than <code>mountmgr.sys</code>, as dealing with <a href="https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/bypass-x64-dse/x64DSEBypass.cpp">trashed SYSTEM thread stack and SMEP is pretty annoying.</a></p>
