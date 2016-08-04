@@ -43,7 +43,7 @@
                 
 <p><a href="https://github.com/katlogic/WindowsD/blob/master/wind.c#L362">click here for tl;dr</a></p>
 
-<p>Tablets with Windows, SecureBoot, TPM and Bitlocker is all fun and games,
+<p>Tablets with Windows, SecureBoot, TPM and Bitlocker are all fun and games,
 until you want to install some free utility (such as FreeOTFE). Long story short,
 you have to disable Bitlocker, or buy a higher than home edition of windows (to add
 -pw protector so you can turn off secure boot). Bummer.</p>
@@ -148,7 +148,7 @@ reshape rest of the table as we like and achieve true memcpy (control both sourc
 Meaning our table will be dumped on stack off-by-8 bytes and we can't guess where the pool sits (ie the sign bit it delivers) at first.</p>
 
 <p>What we do is - first assume the number will be positive and there is 8byte "padding" present,
-and if the guess turns out wrong, the misaligned structure will terminate <code>RtlQueryRegistryValues</code>
+and if the guess turns out to be wrong, the misaligned structure will terminate <code>RtlQueryRegistryValues</code>
 through documented <a href="https://github.com/bigzz/WRK/blob/master/base/ntos/rtl/regutil.c#L899">invalid parameter combo</a>,
 namely specifying non-null <code>QueryRoutine</code> together with <code>RTL_QUERY_REGISTRY_DIRECT</code> (=<code>0x20</code>) in <code>Flags</code>. Remember
 the table looks like this on x64:</p>
